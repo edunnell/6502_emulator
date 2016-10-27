@@ -11,7 +11,7 @@ using std::cout; using std::endl; using std::hex;
 using std::ifstream; using std::istreambuf_iterator; using std::noskipws;
 using std::vector; using std::map; using std::for_each;
 using std::string; using std::stringstream;
-using std::bind;
+using std::bind; using std::function;
 // 16-bit registers
 unsigned short int pc;
 // 8-bit registers
@@ -19,20 +19,21 @@ unsigned char sp, a, x, y, status;
 
 
 typedef void(*PrintFcn)(string, string);
+typedef std::function<void(string)> print_function;
 
 struct opcode_t{
   string       opcode;
   unsigned int length;
-  PrintFcn     print_function;
+  print_function print;
 };
-
-
 
 void print_immediate(string opcode, string operand);
 
-typedef map<unsigned char, opcode_t> opcodes_t;
+
+typedef map<unsigned char, print_function> opcodes_t;
 opcodes_t opcodes_map = {
-  {0x69, {"ADC", 1, print_immediate}}
+  {0x69, bind(print_immediate, "ADC", std::placeholders::_1)}
+  //  {0x69, {"ADC", 1, print_immediate,parse_word_operand,without_Register}} //working with print_function typedef
   // {0x69, {"ADC", "immediate", 1}},
   // // {0x29, {"AND", "immediate", 1}},
   // // {0xc9, {"CMP", "immediate", 1}},
@@ -47,8 +48,6 @@ opcodes_t opcodes_map = {
 };
 
 
-void print_opcode(opcode_t, vector<unsigned char>::iterator);
-string operand_format(string, unsigned int, vector<unsigned char>::iterator);
 
 
 int main(int argc, char *argv[]) {
@@ -61,15 +60,13 @@ int main(int argc, char *argv[]) {
     if((opcode_iter=opcodes_map.find(*rom_data_iter))!=opcodes_map.end()) {
       std::stringstream operand;
       operand << std::hex << static_cast<int>(*(rom_data_iter+1));
-      opcode_iter->second.print_function(opcode_iter->second.opcode, operand.str());
-
+      opcode_iter->second(operand.str());      
     }
     ++rom_data_iter;
   }
   
   return 0;
 }
-
 
 void print_immediate(string opcode, string operand) {
   cout << opcode << " #" << operand << endl;
