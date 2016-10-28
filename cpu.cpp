@@ -19,20 +19,24 @@ unsigned char sp, a, x, y, status;
 
 
 typedef void(*PrintFcn)(string, string);
-typedef std::function<void(string)> print_function;
+typedef function<void(string)> print_function;
+typedef function<string(vector<unsigned char>::iterator&)> get_operand_function;
 
 struct opcode_t{
-  string       opcode;
-  unsigned int length;
+  get_operand_function operand;
   print_function print;
 };
 
 void print_immediate(string opcode, string operand);
+string get_operand(unsigned int length, vector<unsigned char>::iterator &it);
 
-
-typedef map<unsigned char, print_function> opcodes_t;
+typedef map<unsigned char, opcode_t> opcodes_t;
 opcodes_t opcodes_map = {
-  {0x69, bind(print_immediate, "ADC", std::placeholders::_1)}
+  {0x69, {
+      bind(get_operand, 1, std::placeholders::_1),
+      bind(print_immediate, "ADC", std::placeholders::_1)
+    }
+  }
   //  {0x69, {"ADC", 1, print_immediate,parse_word_operand,without_Register}} //working with print_function typedef
   // {0x69, {"ADC", "immediate", 1}},
   // // {0x29, {"AND", "immediate", 1}},
@@ -58,9 +62,8 @@ int main(int argc, char *argv[]) {
   while(rom_data_iter != rom_data.end()) {
     opcodes_t::iterator opcode_iter;
     if((opcode_iter=opcodes_map.find(*rom_data_iter))!=opcodes_map.end()) {
-      std::stringstream operand;
-      operand << std::hex << static_cast<int>(*(rom_data_iter+1));
-      opcode_iter->second(operand.str());      
+      string operand = opcode_iter->second.operand(rom_data_iter);
+      opcode_iter->second.print(operand);
     }
     ++rom_data_iter;
   }
@@ -70,4 +73,10 @@ int main(int argc, char *argv[]) {
 
 void print_immediate(string opcode, string operand) {
   cout << opcode << " #" << operand << endl;
+}
+
+string get_operand(unsigned int length, vector<unsigned char>::iterator &it) {
+  std::stringstream operand;
+  operand << std::hex << static_cast<int>(*(it+1));
+  return operand.str();
 }
