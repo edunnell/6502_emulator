@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "instructions.h"
+#include <iomanip>
 
 // 16-bit registers
 unsigned short int pc;
@@ -13,6 +14,10 @@ template<> void print_instruction<implied>(const std::string mneumonic, uchar_ve
 
 template<> void print_instruction<zero_page>(const std::string mneumonic, uchar_vector_t::iterator i)
 {
+  // heh, this is a bit of a problem, we need to get the new incremented iterator back
+  // I suppose that could be a return of this function?
+  std::cout << mneumonic << " #$" << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)*i << std::endl;
+  
 };
 template<> void print_instruction<zp_indexed_x>(const std::string mneumonic, uchar_vector_t::iterator i)
 {
@@ -47,7 +52,9 @@ template<> void print_instruction<indirect_absolute>(const std::string mneumonic
 int main(int argc, char *argv[]) {
   
   uchar_vector_t test_data;
-  test_data.push_back(0x0);
+  //  test_data.push_back(0x0);
+  test_data.push_back(0x65);
+  test_data.push_back(0xa);
   auto iter = test_data.begin();
   opcodes_map[*iter++](iter);
 
